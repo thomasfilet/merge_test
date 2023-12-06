@@ -10,7 +10,6 @@ app.use(cors());
 
 const secretkey = "dd"
 
-// J'ajouter un commentaire
 
 const user_Account = [
     {
@@ -73,3 +72,44 @@ const film = [
         comments: 12
     },
 ]
+
+const authenticateJwt = (req, res, next) => {
+    const token = req.header('Authorization')
+
+    if (!token) {
+        res.status(401).json({error: 'auhtentification requise'})
+    } else {
+        jwt.verify(token, secretkey, (err, decoded) => {
+            if (err) {
+                res.status(401).json({error: 'JWT invalide'})
+            } else {
+                next()
+            }
+        })
+    }
+}
+app.use((req, res, next) => {
+    if (publicRoute.includes(req.path)) {
+        next()
+    } else {
+        authenticateJwt(req, res, next)
+    }
+})
+
+
+app.post('/auth', (req, res) => {
+    const {pseudo, password} = req.body;
+    const user = user_Account.find((s) => s.pseudo === pseudo && s.password === password);
+
+    if (user !== null) {
+        const payload = {
+            id: user.id,
+            pseudo: user.pseudo,
+            exp: Math.floor(Date.now() / 1000) + 43200
+        };
+        const token = jwt.sign(payload, secretkey)
+        res.send({jwt: token})
+    } else (
+        res.status(401).json({error: 'Wrong User / password'})
+    )
+})
