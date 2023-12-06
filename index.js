@@ -113,3 +113,129 @@ app.post('/auth', (req, res) => {
         res.status(401).json({error: 'Wrong User / password'})
     )
 })
+
+app.post('/inscription', (req, res) => {
+    const {name, password} = req.body
+    const nb_random = Math.random() * 10
+    const user_name = {id: user_Account.length + 1, pseudo: name + nb_random, password: password};
+    user_Account.push(user_name)
+    res.status(200).json(user_name)
+});
+
+app.post('/critique', (req, res) => {
+    const token = req.header('Authorization')
+    const {titre_film, critique_film} = req.body
+    const like = 0;
+    const comment = 0;
+    const date_critique = Date.now();
+    const user_current = jwt.verify(token, secretkey)
+    if (user_current == null) {
+        res.status(401).json({error: 'user invalide'})
+    } else {
+        const current_id = user_current.id
+        const critique_split = critique_film.split(/\s+/).filter(function (word) {
+            return word.length > 0
+        })
+        const nb_mot = critique_split.length
+        if (!(nb_mot < 50) && !(nb_mot > 500)) {
+            const newCritique = {
+                id: film.length + 1,
+                titre: titre_film,
+                critique: critique_film,
+                auteurId: current_id,
+                date: date_critique,
+                likes: like,
+                comments: comment
+            };
+            film.push(newCritique);
+            console.log(film)
+            res.status(200).json(newCritique)
+        } else {
+            res.status(401).json({error: 'merci de mettre entre 50 et 500 mot dans la critique'})
+        }
+    }
+});
+
+app.get('/critique', (req, res) => {
+    const token = req.header('Authorization')
+    const user_current = jwt.verify(token, secretkey)
+    const {auteur, titre} = req.query
+    if (user_current != null) {
+        const critique = []
+        if (auteur !== undefined) {
+            film.forEach(function (e) {
+                const id_auteur = e.auteurId
+                const auteur_account = user_Account.find((s) => s.id === id_auteur);
+                const auteur_name = auteur_account.pseudo;
+                if (auteur_name === auteur) {
+                    const id_critique = e.id
+                    const critique_body = e.critique
+                    const critique_spe = {id: id_critique, auteur: auteur_name, critique: critique_body}
+                    critique.push(critique_spe)
+                }
+            })
+        } else if (titre !== undefined) {
+            film.forEach(function (e) {
+                const id_auteur = e.auteurId
+                const auteur_account = user_Account.find((s) => s.id === id_auteur);
+                const auteur_name = auteur_account.pseudo;
+                const titre_critique = e.titre
+                if (titre_critique === titre) {
+                    const id_critique = e.id
+                    const critique_body = e.critique
+                    const critique_spe = {id: id_critique, auteur: auteur_name, critique: critique_body}
+                    critique.push(critique_spe)
+                }
+            })
+        } else {
+            film.forEach(function (e) {
+                const id_auteur = e.auteurId
+                const auteur_account = user_Account.find((s) => s.id === id_auteur);
+                const auteur_name = auteur_account.pseudo;
+                const id_critique = e.id
+                const critique_body = e.critique
+                const critique_spe = {id: id_critique, auteur: auteur_name, critique: critique_body}
+                critique.push(critique_spe)
+            })
+        }
+        res.status(200).json(critique)
+    }
+
+
+});
+
+app.get('/critique/:id', (req, res) => {
+    const {id} = req.params;
+    const critique = film.find((s) => s.id === parseInt(id));
+
+    if(critique === null || critique === undefined){
+        res.status(401).json({error: 'critique non existante'})
+    }else{
+        res.status(200).json(critique);
+    }
+});
+
+function change(initialChaine, lastChaine){
+    const distance = levenshtein.get(initialChaine, lastChaine);
+    const longueurInitiale = initialChaine.length;
+    const pourcentageModification = (distance / longueurInitiale) * 100;
+    return pourcentageModification;
+}
+
+
+app.get('/critique/delete/:id', (req, res) => {
+    const {id} = req.params;
+    const critiqueindex = film.findIndex((s) => s.id === parseInt(id));
+
+    if(critiqueindex === null || critiqueindex === undefined){
+        res.status(401).json({error: 'critique non existante'})
+    }else{
+        film.splice(critiqueindex, 1);
+        res.status(200).json({message :'suppresion reussi', film});
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Serveur démarré sur le port ${PORT}`);
+});
