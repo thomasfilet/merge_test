@@ -235,6 +235,28 @@ app.get('/critique/delete/:id', (req, res) => {
     }
 });
 
+app.put('/critics', (req,res)=>{
+    const {id, critic, title, } = req.body
+
+    
+    let criticIndex = film.findIndex((u) => (u.id === id ))
+    if( criticIndex !== -1){
+        if (critic.split(" ").length<50 || critic.split(" ").length>500){
+            res.status(401).json({error: "critic needs to be between 50 and 500 words"})
+        }
+        if (((critic.split(" ").length-critics[criticIndex].critic.split(" ").length)/critics[criticIndex].critic.split(" ").length)>0.3){
+            res.status(401).json({error: "change between critics needs to be under 30%"})
+        }
+        film[criticIndex].critic = critic
+        film[criticIndex].title = title
+    res.send(film[criticIndex])
+    }
+    res.status(401).json({error: "there are no critics with such id"})
+    
+
+
+})
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur le port ${PORT}`);
